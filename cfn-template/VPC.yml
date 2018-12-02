@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: kadai
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: prod
+      AllowedValues:
+        - prod
+      ConstraintDescription: must be a prod or test
+Mappings:
+  prod:
+    VPC:
+      VpcCidrBlock: 10.0.0.0/16
+    Subnet:
+      PublicSubnet1: 10.0.1.0/24
+      PublicSubnet2: 10.0.2.0/24
+      PrivateSubnet1: 10.0.3.0/24
+      PrivateSubnet2: 10.0.4.0/24
+    AvailabilityZone:
+      PublicSubnet1: ap-northeast-1a
+      PublicSubnet2: ap-northeast-1c
+      PrivateSubnet1: ap-northeast-1a
+      PrivateSubnet2: ap-northeast-1c
+
+Resources:
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: !FindInMap [ !Ref EnvironmentType, VPC, VpcCidrBlock ]
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: "default"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-vpc"
+# PublicSubnet
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: !FindInMap [ !Ref EnvironmentType, Subnet, PublicSubnet1 ]
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, PublicSubnet1 ]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet-1"
+      VpcId: !Ref VPC
+  PublicSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: !FindInMap [ !Ref EnvironmentType, Subnet, PublicSubnet2 ]
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, PublicSubnet2 ]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet-2"
+      VpcId: !Ref VPC
+
+# PrivateSubnet
+  PrivateSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: !FindInMap [ !Ref EnvironmentType, Subnet, PrivateSubnet1 ]
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, PrivateSubnet1 ]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-PrivateSubnet-1"
+      VpcId: !Ref VPC
+  PrivateSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: !FindInMap [ !Ref EnvironmentType, Subnet, PrivateSubnet2 ]
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, PrivateSubnet2 ]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-PrivateSubnet-1"
+      VpcId: !Ref VPC
+
+# IGW
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-IGW"
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+# Public-Routetable
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-public-route"
+  AddInternetGatewayToPublicRouteTable:
+    Type: 'AWS::EC2::Route'
+    DependsOn: AttachGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+  AttachPublicRouteTableToPublicSubnet1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+  AttachPublicRouteTableToPublicSubnet2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+# Private-Routetable
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-private-route"
+  AttachPrivateRouteTableToPrivateSubnet1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet1
+  AttachPrivateRouteTableToPrivateSubnet2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet2
+
+Outputs:
+  MyVPC:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-vpc"
+  PublicSubnet1:
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet1"
+  PublicSubnet2:
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet2"
+  PrivateSubnet1:
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-PrivateSubnet1"
+  PrivateSubnet2:
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-PrivateSubnet2"

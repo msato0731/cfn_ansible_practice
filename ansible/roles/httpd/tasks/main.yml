@@ -1,0 +1,19 @@
+- name: Install http server
+  yum:
+    name: httpd
+
+- name: Start http server
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: Set health.html
+  copy:
+    src: health.html
+    dest: /var/www/html/health.html
+
+- name: Set index.html
+  copy:
+    src: index.html
+    dest: /var/www/html/index.html

@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: kadai
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: prod
+      AllowedValues:
+        - prod
+      ConstraintDescription: must be a prod or test
+
+Resources:
+  PowerUserRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+      RoleName: PowerUserRole
+
+# PowerUser Role
+  PowerUserProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+        -
+          Ref: "PowerUserRole"
+      InstanceProfileName: PowerUserRole

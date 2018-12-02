@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: kadai
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: prod
+      AllowedValues:
+        - prod
+      ConstraintDescription: must be a prod or test
+
+Resources:
+#    ALB
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: LB-HTTP
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+      - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet1"}
+      - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet2"}
+      SecurityGroups:
+      - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForALB"}
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: 300
+      Tags:
+      - Key: Name
+        Value: ALB-HTTP
+
+#    ALB Listener
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ALB
+      Port: '80'
+      Protocol: HTTP
+
+#    ALB TargetGroup
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckPath: /health.html
+      Name: TG-HTTP
+      Port: 80
+      Protocol: HTTP
+      Targets:
+      - Id:  {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-EC2ForWebServer1"}
+        Port: 80
+      - Id: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-EC2ForWebServer2"}
+        Port: 80
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+      - Key: Name
+        Value: TG-HTTP

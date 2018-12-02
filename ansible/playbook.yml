@@ -1,0 +1,24 @@
+- hosts: kadai-web01,kadai-web02
+  become: yes
+  become_user: root
+  tasks:
+  roles:
+    - hostname
+    - httpd
+    - jq
+    - mysql
+    - script
+
+- hosts: kadai-web01
+  become: yes
+  become_user: root
+  tasks:
+  roles:
+    - {role: script/kadai-web01}
+
+- hosts: kadai-web02
+  become: yes
+  become_user: root
+  tasks:
+  roles:
+    - {role: script/kadai-web02}

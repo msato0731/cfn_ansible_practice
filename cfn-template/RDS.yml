@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: kadai
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: prod
+      AllowedValues:
+        - prod
+      ConstraintDescription: must be a prod or test
+  MyUserPassword:
+    Description: 'password'
+    Type: String
+    MinLength: '8'
+    MaxLength: '18'
+    AllowedPattern: ^[a-zA-Z0-9]*$
+    ConstraintDescription: password
+    NoEcho: true
+
+Resources:
+# RDS SubnetGroup
+  myDBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: description
+      SubnetIds:
+        - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PrivateSubnet1"}
+        - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PrivateSubnet2"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-DBSubnetGroup"
+# RDS Instance
+  MyDB:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBInstanceIdentifier: !Sub "${ProjectId}-${EnvironmentType}-DBInstance"
+      DBName: Mydb
+      AllocatedStorage: '20'
+      DBInstanceClass: db.t2.micro
+      Engine: MySQL
+      DBSubnetGroupName: !Ref myDBSubnetGroup
+      VPCSecurityGroups:
+        - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForDB"}
+      MasterUsername: DBUser
+      MasterUserPassword: !Ref MyUserPassword
+      MultiAZ: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-DBInstance"

@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: kadai
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: prod
+      AllowedValues:
+        - prod
+      ConstraintDescription: must be a prod or test
+  KeyPairName:
+    Type: "AWS::EC2::KeyPair::KeyName"
+    Description: SSH keyPair
+  WebServerImageName:
+    Type: "AWS::EC2::Image::Id"
+    Description: Web Server AMI Image ID
+    Default: ami-e99f4896
+
+Mappings:
+  prod:
+    AvailabilityZone:
+      Web1: ap-northeast-1a
+      Web2: ap-northeast-1c
+    IPAddress:
+      Web1: 10.0.1.10
+      Web2: 10.0.2.10
+    InstanceType:
+      Web: t2.micro
+
+Resources:
+
+#   WebServer instance 1
+  EC2ForWebServer1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref WebServerImageName
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, Web1 ]
+      KeyName: !Ref KeyPairName
+      InstanceType: !FindInMap [ !Ref EnvironmentType, InstanceType, Web ]
+      InstanceInitiatedShutdownBehavior: stop
+      IamInstanceProfile: PowerUserRole
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          PrivateIpAddress: !FindInMap [ !Ref EnvironmentType, IPAddress, Web1 ]
+          SubnetId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet1"}
+          GroupSet:
+            - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForWeb"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-WebServer1"
+
+#   WebServer instance 2
+  EC2ForWebServer2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref WebServerImageName
+      AvailabilityZone: !FindInMap [ !Ref EnvironmentType, AvailabilityZone, Web2 ]
+      KeyName: !Ref KeyPairName
+      InstanceType: !FindInMap [ !Ref EnvironmentType, InstanceType, Web ]
+      InstanceInitiatedShutdownBehavior: stop
+      IamInstanceProfile: PowerUserRole
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          PrivateIpAddress: !FindInMap [ !Ref EnvironmentType, IPAddress, Web2 ]
+          SubnetId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-PublicSubnet2"}
+          GroupSet:
+            - {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForWeb"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-WebServer2"
+
+Outputs:
+  EC2ForWebServer1:
+    Value: !Ref EC2ForWebServer1
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-EC2ForWebServer1"
+  EC2ForWebServer2:
+    Value: !Ref EC2ForWebServer2
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-EC2ForWebServer2"

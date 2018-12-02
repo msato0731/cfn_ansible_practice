@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyPairName:
+    Type: "AWS::EC2::KeyPair::KeyName"
+    Description: SSH keyPair
+  MyUserPassword:
+    Description: 'password'
+    Type: String
+    MinLength: '8'
+    MaxLength: '18'
+    AllowedPattern: ^[a-zA-Z0-9]*$
+    ConstraintDescription: password
+    NoEcho: true
+  Email:
+    Description: Email Address.
+    Type: String
+    Default: test@example.com
+
+Resources:
+  IAM:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/IAM.yml
+
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/VPC.yml
+
+  SecurityGroup:
+    DependsOn: VPC
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/SecurityGroup.yml
+
+  EC2:
+    DependsOn: SecurityGroup
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/EC2.yml
+      Parameters:
+        KeyPairName: !Ref KeyPairName
+
+  ALB:
+    DependsOn: EC2
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/ALB.yml
+
+  RDS:
+    DependsOn: SecurityGroup
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/RDS.yml
+      Parameters:
+        MyUserPassword: !Ref MyUserPassword
+
+  SQS:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/SQS.yml
+
+  SNS:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: SQS
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/SNS.yml
+      Parameters:
+        Email: !Ref Email

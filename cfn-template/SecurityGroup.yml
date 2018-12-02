@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: kadai
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: prod
+      AllowedValues:
+        - prod
+      ConstraintDescription: must be a prod or test
+
+Resources:
+#    ALB SecurityGroup
+  SecurityGroupForALB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub "${ProjectId}-${EnvironmentType}-ALB-SG"
+      GroupDescription: >-
+        SG for ALB Server
+#    Inbound SecurityGroup
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: HTTP
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-ALB-SG"
+
+#    WEBServer SecurityGroup
+  SecurityGroupForWeb:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub "${ProjectId}-${EnvironmentType}-Web-SG"
+      GroupDescription: >-
+        SG for Web Server
+#    Inbound SecurityGroup
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: SSH
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - SourceSecurityGroupId: !Ref SecurityGroupForALB
+          Description: HTTP
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-Web-SG"
+
+#    DBServer SecurityGroup
+  SecurityGroupForDB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub "${ProjectId}-${EnvironmentType}-DB-SG"
+      GroupDescription: >-
+        SG for DB Server
+#    Inbound SecurityGroup
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref SecurityGroupForWeb
+          Description: Mysql
+          FromPort: 3306
+          IpProtocol: tcp
+          ToPort: 3306
+      VpcId: {"Fn::ImportValue": !Sub "${ProjectId}-${EnvironmentType}-vpc"}
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectId}-${EnvironmentType}-DB-SG"
+
+
+Outputs:
+  SecurityGroupForALB:
+    Value: !Ref SecurityGroupForALB
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForALB"
+  SecurityGroupForWeb:
+    Value: !Ref SecurityGroupForWeb
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForWeb"
+  SecurityGroupForDB:
+    Value: !Ref SecurityGroupForDB
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-SecurityGroupForDB"

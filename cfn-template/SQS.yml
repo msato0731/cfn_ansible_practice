@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectId:
+    Description: "Project name id."
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-/:-@\[-\`\{-\~]+$'
+    ConstraintDescription: "InvalidValue[ProjectId]"
+    Default: kadai
+  EnvironmentType:
+      Description: The environment type
+      Type: String
+      Default: prod
+      AllowedValues:
+        - prod
+      ConstraintDescription: must be a prod or test
+
+Resources:
+  SQSQueue:
+    Type: AWS::SQS::Queue
+  SQSPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Id: MyQueuePolicy
+        Version: '2012-10-17'
+        Statement:
+        - Sid: Allow-User-SendMessage
+          Effect: Allow
+          Principal:
+            AWS: "*"
+          Action:
+          - sqs:SendMessage
+          - sqs:DeleteMessage
+          - sqs:GetQueueUrl
+          Resource: "*"
+      Queues:
+        - !Ref SQSQueue
+
+Outputs:
+  SQSQueue:
+    Value:
+      Fn::GetAtt:
+        - "SQSQueue"
+        - "Arn"
+    Export:
+      Name: !Sub "${ProjectId}-${EnvironmentType}-Queue"
