@@ -20,24 +20,24 @@ Resources:
   IAM:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/IAM.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/IAM.yml
 
   VPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/VPC.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/VPC.yml
 
   SecurityGroup:
     DependsOn: VPC
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/SecurityGroup.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/SecurityGroup.yml
 
   EC2:
     DependsOn: SecurityGroup
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/EC2.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/EC2.yml
       Parameters:
         KeyPairName: !Ref KeyPairName
 
@@ -45,25 +45,25 @@ Resources:
     DependsOn: EC2
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/ALB.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/ALB.yml
 
   RDS:
     DependsOn: SecurityGroup
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/RDS.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/RDS.yml
       Parameters:
         MyUserPassword: !Ref MyUserPassword
 
   SQS:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/SQS.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/SQS.yml
 
   SNS:
     Type: AWS::CloudFormation::Stack
     DependsOn: SQS
     Properties:
-      TemplateURL: https://s3.amazonaws.com/kadai-cfn-181120/SNS.yml
+      TemplateURL: https://s3.amazonaws.com/<バケット名>/SNS.yml
       Parameters:
         Email: !Ref Email
