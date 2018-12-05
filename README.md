@@ -7,7 +7,7 @@ chmod 600 <keyファイル>
 1. cloudformation実行
     - Stack.ymlのs3のパスを変更する
     - rdsのパスワードは、「password」にする
-    - snsのメールアドレスは、「msato.test@gmail.com」にする
+    - snsのメールアドレスは、「test@example.com」にする
 1. SNSの承認メールを承諾する
 1. ~/.ssh/configを書き換える
   - keyfile
